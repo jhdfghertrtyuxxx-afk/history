@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>赌博范式演变史 - 交互演示</title>
+    <!-- 引入 React 和 Tailwind -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; }
+        /* 定义3D翻转效果 */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        
+        /* 定义关键帧动画 */
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 数据定义 (使用 Emoji 替代图标以确保单文件直接运行) ---
+        const paradigms = [
+            {
+                id: 'lottery',
+                year: '1950s - 1970s',
+                title: '早期阶段：彩票选择',
+                researchers: '早期经济学家与心理学家',
+                icon: '💲',
+                description: '这一时期的研究主要使用简单的概率选择任务。关注重点在于由明确概率定义的风险决策。假设人是理性的，会计算“期望值”。',
+                keyFeature: '明确的概率 (Explicit Probabilities)',
+                demoType: 'lottery',
+                color: 'bg-blue-100 text-blue-800'
+            },
+            {
+                id: 'igt',
+                year: '1994',
+                title: '爱荷华博弈任务 (IGT)',
+                researchers: 'Bechara & Damasio',
+                icon: '🧠',
+                description: '模拟现实生活中“模糊”情境下的决策。被试不知道具体的胜率规则，需要通过体验来学习。该任务揭示了情感标记（Somatic Markers）在决策中的关键作用。',
+                keyFeature: '模糊性 (Ambiguity) & 情感学习',
+                demoType: 'igt',
+                color: 'bg-purple-100 text-purple-800'
+            },
+            {
+                id: 'cgt',
+                year: '1999',
+                title: '剑桥博弈任务 (CGT)',
+                researchers: 'Rogers (CANTAB)',
+                icon: '📊',
+                description: '侧重于评估被试的“风险调整”能力和决策质量。与IGT不同，它提供了可视化的概率（如红蓝盒子的比例），排除了学习规则的干扰，纯粹考察在已知风险下的决策。',
+                keyFeature: '风险调整 (Risk Adjustment)',
+                demoType: 'cgt',
+                color: 'bg-green-100 text-green-800'
+            },
+            {
+                id: 'bart',
+                year: '2002',
+                title: '气球模拟风险任务 (BART)',
+                researchers: 'Lejuez',
+                icon: '🎈',
+                description: '模拟动态风险情境。给气球充气可以赚取积分，但气球随时可能“爆炸”导致本轮积分归零。这测试了人们在风险不断增加时的冒险倾向。',
+                keyFeature: '动态风险 (Dynamic Risk)',
+                demoType: 'bart',
+                color: 'bg-orange-100 text-orange-800'
+            },
+            {
+                id: 'gdt',
+                year: '2005',
+                title: '骰子任务 (GDT)',
+                researchers: 'Brand',
+                icon: '🎲',
+                description: '提供明确的概率规则（如猜骰子点数），考察在规则清晰情况下的执行功能和反馈利用能力。',
+                keyFeature: '明确规则下的执行功能',
+                demoType: 'static',
+                color: 'bg-red-100 text-red-800'
+            },
+            {
+                id: 'mixed',
+                year: '2007',
+                title: '混合博弈任务 (Mixed)',
+                researchers: 'Sabrina Tom et al. (Science)',
+                icon: '⚡',
+                description: '结合 fMRI 技术，研究大脑（特别是腹侧纹状体）在面对 50/50 混合盈亏（如：+1000 / -256）时的神经反应。',
+                keyFeature: '神经机制 (Neuroscience) & 损失厌恶',
+                demoType: 'static',
+                color: 'bg-indigo-100 text-indigo-800'
+            }
+        ];
+
+        // --- 组件：Lottery Demo ---
+        const LotteryDemo = () => {
+            const [result, setResult] = useState(null);
+            const [isRolling, setIsRolling] = useState(false);
+
+            const play = (type) => {
+                setIsRolling(true);
+                setResult(null);
+                
+                setTimeout(() => {
+                    const win = Math.random() > 0.5;
+                    if (type === 'safe') {
+                        setResult({ msg: '你选择了稳妥：获得 10 积分', type: 'safe' });
+                    } else {
+                        if (win) setResult({ msg: '冒险成功！获得 50 积分', type: 'win' });
+                        else setResult({ msg: '冒险失败。获得 0 积分', type: 'loss' });
+                    }
+                    setIsRolling(false);
+                }, 600);
+            };
+
+            return (
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 text-center">
+                    <h4 className="font-bold text-gray-700 mb-4 flex items-center justify-center gap-2">
+                        <span>💲</span> 演示：彩票选择
+                    </h4>
+                    <p className="text-sm text-gray-500 mb-6">早期研究假设你会计算期望值，你会选哪个？</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <button 
+                            disabled={isRolling}
+                            onClick={() => play('safe')} 
+                            className="group relative p-4 border-2 border-blue-100 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 rounded-xl transition-all flex flex-col items-center disabled:opacity-50"
+                        >
+                            <span className="font-bold text-blue-800 text-lg group-hover:scale-105 transition-transform">选项 A (稳妥)</span>
+                            <span className="text-sm text-blue-600 mt-1">100% 赢得 10 积分</span>
+                            <div className="mt-2 w-full h-1 bg-blue-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-blue-500 w-full"></div>
+                            </div>
+                        </button>
+
+                        <button 
+                            disabled={isRolling}
+                            onClick={() => play('risk')} 
+                            className="group relative p-4 border-2 border-purple-100 bg-purple-50 hover:bg-purple-100 hover:border-purple-300 rounded-xl transition-all flex flex-col items-center disabled:opacity-50"
+                        >
+                            <span className="font-bold text-purple-800 text-lg group-hover:scale-105 transition-transform">选项 B (冒险)</span>
+                            <span className="text-sm text-purple-600 mt-1">50% 赢得 50 积分</span>
+                            <span className="text-xs text-purple-400">50% 获得 0 积分</span>
+                            <div className="mt-2 w-full h-1 bg-purple-200 rounded-full overflow-hidden flex">
+                                <div className="h-full bg-green-400 w-1/2"></div>
+                                <div className="h-full bg-red-300 w-1/2"></div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div className="h-16 flex items-center justify-center">
+                        {isRolling ? (
+                            <div className="flex gap-2 text-gray-400 animate-pulse">
+                                <span>🔄</span> 计算中...
+                            </div>
+                        ) : result ? (
+                            <div className={`px-6 py-3 rounded-lg font-bold shadow-sm transition-all transform scale-100 animate-fade-in-up ${
+                            result.type === 'loss' ? 'bg-red-100 text-red-700 border border-red-200' : 
+                            result.type === 'win' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-blue-100 text-blue-700 border border-blue-200'
+                            }`}>
+                            {result.msg}
+                            </div>
+                        ) : (
+                            <span className="text-gray-300 text-sm">请做出选择</span>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 组件：IGT Demo ---
+        const IGTDemo = () => {
+            const [score, setScore] = useState(2000);
+            const [history, setHistory] = useState([]);
+            const [lastResult, setLastResult] = useState(null);
+            const [animatingDeck, setAnimatingDeck] = useState(null);
+
+            const decks = {
+                A: { win: 100, lossProb: 0.5, lossAmt: 250, label: 'A', color: 'from-red-500 to-red-600' },
+                B: { win: 100, lossProb: 0.1, lossAmt: 1250, label: 'B', color: 'from-orange-500 to-orange-600' },
+                C: { win: 50, lossProb: 0.5, lossAmt: 50, label: 'C', color: 'from-emerald-500 to-emerald-600' },
+                D: { win: 50, lossProb: 0.1, lossAmt: 250, label: 'D', color: 'from-teal-500 to-teal-600' },
+            };
+
+            const drawCard = (deckKey) => {
+                if (animatingDeck) return;
+                setAnimatingDeck(deckKey);
+                setLastResult(null);
+
+                setTimeout(() => {
+                    const deck = decks[deckKey];
+                    let currentLoss = 0;
+                    if (Math.random() < deck.lossProb) {
+                        currentLoss = deck.lossAmt;
+                    }
+                    const net = deck.win - currentLoss;
+                    setScore(s => s + net);
+                    setLastResult({ deck: deckKey, win: deck.win, loss: currentLoss, net });
+                    setAnimatingDeck(null);
+                }, 400);
+            };
+
+            return (
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        <span>🧠</span> 演示：爱荷华博弈任务 (IGT)
+                    </h4>
+                    <div className="flex justify-between items-center mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <div>
+                            <span className="text-xs text-gray-500 block">当前资金</span>
+                            <span className={`font-mono font-bold text-2xl transition-colors duration-300 ${score < 2000 ? 'text-red-600' : 'text-green-600'}`}>${score}</span>
+                        </div>
+                        <button onClick={() => {setScore(2000); setLastResult(null)}} className="text-xs bg-white border px-3 py-1 rounded hover:bg-gray-50 text-gray-600">重置</button>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-3 mb-6 perspective-1000">
+                        {Object.keys(decks).map(key => (
+                        <div key={key} className={`relative aspect-[2/3] transform-style-3d transition-transform duration-500 ${animatingDeck === key ? 'rotate-y-180' : 'hover:-translate-y-2'}`}>
+                            {/* 正面 */}
+                            <button 
+                                onClick={() => drawCard(key)}
+                                className="absolute inset-0 w-full h-full rounded-lg shadow-md bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold border-2 border-white/20 backface-hidden cursor-pointer"
+                            >
+                                {key}
+                            </button>
+                        </div>
+                        ))}
+                    </div>
+
+                    <div className="h-16 flex items-center justify-center">
+                        {lastResult && (
+                            <div className="text-center animate-fade-in-up">
+                                <div className="text-sm text-gray-500">结果</div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-600 font-bold text-lg">+{lastResult.win}</span>
+                                    {lastResult.loss > 0 && <span className="text-red-500 font-bold text-lg"> - {lastResult.loss}</span>}
+                                </div>
+                            </div>
+                        )}
+                        {!lastResult && !animatingDeck && <span className="text-gray-400 text-sm">请点击上方任意牌堆抽牌</span>}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 组件：BART Demo ---
+        const BARTDemo = () => {
+            const [balloonSize, setBalloonSize] = useState(1);
+            const [potentialPoints, setPotentialPoints] = useState(0);
+            const [totalPoints, setTotalPoints] = useState(0);
+            const [popped, setPopped] = useState(false);
+            const [isPumping, setIsPumping] = useState(false);
+            const MAX_SIZE = 15;
+            
+            const pump = () => {
+                if (popped) return;
+                setIsPumping(true);
+                setTimeout(() => {
+                    const popChance = (balloonSize / (MAX_SIZE + 5)); 
+                    const isPop = Math.random() < popChance;
+                    if (isPop) {
+                        setPopped(true);
+                        setPotentialPoints(0);
+                        setBalloonSize(1);
+                    } else {
+                        setBalloonSize(s => s + 1);
+                        setPotentialPoints(p => p + 5);
+                    }
+                    setIsPumping(false);
+                }, 100);
+            };
+
+            const collect = () => {
+                if (popped || potentialPoints === 0) { resetRound(); return; }
+                setTotalPoints(t => t + potentialPoints);
+                resetRound();
+            };
+
+            const resetRound = () => { setBalloonSize(1); setPotentialPoints(0); setPopped(false); };
+
+            return (
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        <span>🎈</span> 演示：气球模拟风险任务 (BART)
+                    </h4>
+                    
+                    <div className="flex justify-between items-center mb-8 px-4">
+                        <div className="text-center">
+                            <div className="text-xs text-gray-500 uppercase">本轮收益</div>
+                            <div className={`font-mono font-bold text-2xl ${popped ? 'text-gray-300 decoration-line-through' : 'text-orange-500'}`}>
+                                {potentialPoints}
+                            </div>
+                        </div>
+                        <div className="text-center p-2 bg-gray-50 rounded-lg">
+                            <div className="text-xs text-gray-500 uppercase">总积分库</div>
+                            <div className="font-mono font-bold text-2xl text-green-600">{totalPoints}</div>
+                        </div>
+                    </div>
+
+                    <div className="h-56 flex items-center justify-center mb-6 relative bg-gradient-to-b from-slate-50 to-white rounded-lg border border-slate-100 overflow-hidden">
+                        {popped ? (
+                        <div className="flex flex-col items-center animate-bounce">
+                            <div className="text-6xl mb-2">💥</div>
+                            <span className="text-red-500 font-bold">爆炸了!</span>
+                        </div>
+                        ) : (
+                        <div className="relative flex items-center justify-center transition-all duration-200 ease-out"
+                                style={{ width: `${balloonSize * 10 + 40}px`, height: `${balloonSize * 10 + 40}px`, maxWidth: '200px', maxHeight: '200px' }}>
+                                <div className={`absolute inset-0 rounded-full bg-orange-400 shadow-[inset_-10px_-10px_20px_rgba(0,0,0,0.2)] transition-transform duration-100 ${isPumping ? 'scale-105' : 'scale-100'}`}></div>
+                                <div className="absolute top-[20%] right-[20%] w-[20%] h-[20%] bg-white/30 rounded-full blur-[2px]"></div>
+                                <div className="absolute -bottom-4 w-1 h-8 bg-gray-300"></div>
+                        </div>
+                        )}
+                    </div>
+
+                    <div className="flex gap-4">
+                        <button onClick={pump} disabled={popped} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl disabled:opacity-50 transition shadow-lg shadow-blue-200">
+                            {popped ? '已爆炸' : '💨 充气 (+5)'}
+                        </button>
+                        <button onClick={collect} className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg shadow-green-200">
+                            {popped ? '🔄 下一轮' : '💰 停止并得分'}
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 组件：CGT 静态展示 ---
+        const CGTDemo = () => (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                    <span>📊</span> 演示：剑桥博弈任务 (CGT)
+                </h4>
+                <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-xl mb-4 border border-gray-100">
+                    <div className="flex gap-1 mb-6">
+                        {[...Array(6)].map((_, i) => <div key={`r-${i}`} className="w-8 h-8 bg-red-500 rounded-md shadow-sm border border-red-600/20"></div>)}
+                        {[...Array(4)].map((_, i) => <div key={`b-${i}`} className="w-8 h-8 bg-blue-500 rounded-md shadow-sm border border-blue-600/20"></div>)}
+                    </div>
+                    <p className="text-sm font-medium text-gray-700 mb-4">黄色代币藏在哪个颜色的盒子下？</p>
+                    <div className="flex gap-4 w-full max-w-xs mb-6">
+                        <button className="flex-1 py-3 bg-white border-2 border-red-100 text-red-600 font-bold rounded-lg shadow-sm hover:bg-red-50">红色 (60%)</button>
+                        <button className="flex-1 py-3 bg-white border-2 border-blue-100 text-blue-600 font-bold rounded-lg shadow-sm hover:bg-blue-50">蓝色 (40%)</button>
+                    </div>
+                    <div className="w-full max-w-xs bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div className="bg-yellow-400 h-full rounded-full" style={{width: '70%', animation: 'pulse 2s infinite'}}></div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // --- 主应用组件 ---
+        function App() {
+            const [activeParadigm, setActiveParadigm] = useState(paradigms[0]);
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
+                    <header className="bg-white border-b sticky top-0 z-20 backdrop-blur-md bg-opacity-90">
+                        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-indigo-600 text-white p-2 rounded-lg shadow-lg shadow-indigo-200 text-xl">
+                                    📈
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold text-gray-900 tracking-tight">赌博范式演变史</h1>
+                                    <p className="text-xs text-gray-500">心理学实验任务发展时间轴</p>
+                                </div>
+                            </div>
+                            <div className="text-xs bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full border border-yellow-200 hidden sm:flex items-center gap-1">
+                                ℹ️ 仅供科普教育
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="max-w-5xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* 左侧：时间轴 */}
+                        <div className="lg:col-span-4 space-y-4">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 px-2 flex items-center gap-2">
+                                <span>🗓️</span> 发展阶段
+                            </h3>
+                            <div className="relative pl-2">
+                                <div className="absolute left-8 top-4 bottom-8 w-0.5 bg-gray-200 rounded-full"></div>
+                                <div className="space-y-4">
+                                    {paradigms.map((item, index) => (
+                                        <div key={item.id} className="relative z-10">
+                                            <button
+                                                onClick={() => setActiveParadigm(item)}
+                                                className={`w-full text-left p-3 pl-12 rounded-xl transition-all duration-300 group relative border backdrop-blur-sm
+                                                ${activeParadigm.id === item.id 
+                                                    ? 'bg-white border-indigo-200 shadow-md translate-x-1' 
+                                                    : 'bg-transparent border-transparent hover:bg-white hover:shadow-sm'
+                                                }`}
+                                            >
+                                                <div className={`absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full border-4 flex items-center justify-center transition-all duration-300 z-10
+                                                ${activeParadigm.id === item.id 
+                                                    ? 'bg-indigo-600 border-indigo-50 text-white scale-110 shadow-lg' 
+                                                    : 'bg-white border-gray-100 text-gray-400 group-hover:border-indigo-100'
+                                                }`}
+                                                >
+                                                    <span className="text-xs font-mono font-bold">{index + 1}</span>
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className={`text-xs font-bold mb-0.5 transition-colors ${activeParadigm.id === item.id ? 'text-indigo-600' : 'text-gray-400'}`}>
+                                                        {item.year}
+                                                    </span>
+                                                    <span className={`text-sm font-medium transition-colors ${activeParadigm.id === item.id ? 'text-gray-900' : 'text-gray-600'}`}>
+                                                        {item.title.split('(')[0]}
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 右侧：展示区 */}
+                        <div className="lg:col-span-8">
+                            <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-white overflow-hidden min-h-[600px] flex flex-col transition-all duration-500">
+                                <div className={`p-8 border-b border-gray-50 ${activeParadigm.color} bg-opacity-10 relative overflow-hidden`}>
+                                    <div className="absolute right-0 top-0 w-32 h-32 bg-current opacity-5 rounded-full -mr-10 -mt-10 blur-2xl pointer-events-none"></div>
+                                    <div className="relative z-10">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-4 bg-white shadow-sm border border-gray-100/50">
+                                            <span>{activeParadigm.icon}</span>
+                                            {activeParadigm.year}
+                                        </div>
+                                        <h2 className="text-2xl font-bold mb-3 tracking-tight text-gray-900">{activeParadigm.title}</h2>
+                                        <div className="flex items-center gap-2 text-sm opacity-80">
+                                            <span>👨‍🔬</span> <span className="font-medium">主要研究者:</span> {activeParadigm.researchers}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-8 space-y-8 flex-1 bg-gradient-to-b from-white to-slate-50/50">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">⚡ 核心特征</h3>
+                                            <p className="text-gray-800 text-sm font-semibold">{activeParadigm.keyFeature}</p>
+                                        </div>
+                                        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">📝 简介</h3>
+                                            <p className="text-gray-600 text-sm leading-relaxed">{activeParadigm.description}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-gray-100 pt-8">
+                                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                            <span>🎮</span> 交互演示
+                                        </h3>
+                                        <div>
+                                            {activeParadigm.demoType === 'lottery' && <LotteryDemo />}
+                                            {activeParadigm.demoType === 'igt' && <IGTDemo />}
+                                            {activeParadigm.demoType === 'bart' && <BARTDemo />}
+                                            {activeParadigm.demoType === 'cgt' && <CGTDemo />}
+                                            {activeParadigm.demoType === 'static' && (
+                                                <div className="bg-gray-50 p-12 rounded-xl border border-dashed border-gray-300 text-center flex flex-col items-center justify-center h-64">
+                                                    <div className="bg-white p-6 rounded-full shadow-md mb-6 text-4xl">
+                                                        {activeParadigm.icon}
+                                                    </div>
+                                                    <p className="text-gray-500 font-medium max-w-sm">此范式通常涉及复杂的仪器（如fMRI脑扫描），较难在网页简单模拟。</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                    <footer className="max-w-5xl mx-auto px-4 py-8 text-center text-gray-400 text-xs border-t border-gray-200 mt-8">
+                        <p>© 2025 心理学实验范式科普演示</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
